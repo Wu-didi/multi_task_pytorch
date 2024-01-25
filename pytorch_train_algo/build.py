@@ -33,48 +33,48 @@ pass
 unset_flag = _UnsetFlag()
 
 class DefaultTaskBuilder(object):
-'''
-Task builder, building objects from config.
+        '''
+        Task builder, building objects from config.
 
-Parameters
+        Parameters
 
-cfg : :py:class: auto_matrix.config. Config
-Data loader, model, etc.
-env_cfg : :py:class: auto_matrix. config. Config
-Environment variables, such as BPU March, kvstore
-solver_cfg : :py:class: auto_matrix.config. Config
-Solver config.
-step : str
-Current training step.
-'''
+        cfg : :py:class: auto_matrix.config. Config
+        Data loader, model, etc.
+        env_cfg : :py:class: auto_matrix. config. Config
+        Environment variables, such as BPU March, kvstore
+        solver_cfg : :py:class: auto_matrix.config. Config
+        Solver config.
+        step : str
+        Current training step.
+        '''
 
     def __init__(self, cfg, solver_cfg):
-    self.cfg = cfg
-    self.solver_cfg = solver_cfg
-    self.logger = logger
+        self.cfg = cfg
+        self.solver_cfg = solver_cfg
+        self.logger = logger
 
-    self. model = unset_flag
-    self._export_model = unset_flag
-    self._val_model = unset_flag
-    self._initializer = unset_flag
-    self._data_loader = unset_flag
-    self._val_data_loader = unset_flag
-    self._batch_prosessor = unset_flag
-    self._val_batch_processor = unset_flag
-    self._metrics = unset_flag
-    self._metrics_and_comparator_pairs = unset_flag
-    self._val_metrics = unset_flag
-    self._hooks = unset_flag
-    self._export_flags = unset_flag
-    self._split_export_model = unset_flag
-    self._split_export_flags = unset_flag
+        self. model = unset_flag
+        self._export_model = unset_flag
+        self._val_model = unset_flag
+        self._initializer = unset_flag
+        self._data_loader = unset_flag
+        self._val_data_loader = unset_flag
+        self._batch_prosessor = unset_flag
+        self._val_batch_processor = unset_flag
+        self._metrics = unset_flag
+        self._metrics_and_comparator_pairs = unset_flag
+        self._val_metrics = unset_flag
+        self._hooks = unset_flag
+        self._export_flags = unset_flag
+        self._split_export_model = unset_flag
+        self._split_export_flags = unset_flag
 
-    self._temp_model_params = None
+        self._temp_model_params = None
 
     def __del__(self):
         self._data_loader = unset_flag
         self._val_data_loader = unset_flag
-        if self ._ temp_model_params is not None:
+        if self._temp_model_params is not None:
             os.remove(self._temp_model_params)
 
     def _build_model(self, name, cfg, solver_cfg=None):
@@ -112,8 +112,8 @@ Current training step.
 
     @property
     def model(self):
-        if self. model is unset_flag:
-            self. model = self ._ build('model', self.cfg.model)
+        if self._model is unset_flag:
+            self._model = self ._ build('model', self.cfg.model)
             for parameter,weight in self ._ model.state_dict().items():
                 if weight.dim()>2 and 'loss' not in parameter:# 针对bn结构
                     self.initializer(weight)
@@ -183,7 +183,7 @@ Current training step.
         if self._hooks is unset_flag:
             self._hooks = []
 
-        return self. hooks
+        return self._hooks
 
     @property
     def metrics(self):
@@ -197,33 +197,33 @@ Current training step.
 
     @property
     def val_metrics(self):
-        if self ._ val_metrics is unset_flag:
+        if self._val_metrics is unset_flag:
             if self.cfg.get('val_metrics', None) is None:
             cfg = self.cfg.metrics
         else:
             cfg = self.cfg.val_metrics
-            self._val_metrics = [self ._ build('metrics', cfg_i) for cfg_i in _as_list(cfg)]
+            self._val_metrics = [self._build('metrics', cfg_i) for cfg_i in _as_list(cfg)]
 
         return self._val_metrics
 
     @property
     def batch_processor(self):
-        if self ._ batch_prosessor is unset_flag:
-            self ._ batch_prosessor = self ._ build('batch_processor', self.cfg.batch_processor,
+        if self._batch_prosessor is unset_flag:
+            self._batch_prosessor = self._build('batch_processor', self.cfg.batch_processor,
             need_backward=True)
-        return self. _batch_prosessor
+        return self._batch_prosessor
 
     @property
     def val_batch_processor(self):
-        if self ._ val_batch_processor is unset_flag:
-        if self.cfg.get('val_batch_processor', None) is None:
-        self ._ val_batch_processor = self ._ build(
-        'batch_processor', self.cfg.batch_processor,
-        need_backward=False)
-
-        self ._ val_batch_processor = self. build(
-        'batch_processor', self.cfg.val_batch_processor,
-        need_backward=False)
+        if self._val_batch_processor is unset_flag:
+            if self.cfg.get('val_batch_processor', None) is None:
+                self._val_batch_processor = self._build(
+                'batch_processor', self.cfg.batch_processor,
+                need_backward=False)
+        else:
+            self ._ val_batch_processor = self. build(
+                'batch_processor', self.cfg.val_batch_processor,
+                need_backward=False)
         return self ._ val_batch_processor
 
     @property
@@ -247,4 +247,138 @@ Current training step.
 
 
 class DefaultTrainer(object):
-    pass
+    def __init__(self,cfg, solver_cfg, task_builder):
+        self.cfg = cfg
+        self.solver_cfg = solver_cfg
+        self.task_builders = _as_list(task_builder)
+        self.params = None
+        self.logger = logger
+        self.hooks = []
+        self._is_prepare = False
+        self._optimizer = unset_flag
+        self._lr_scheduler = unset_flag
+        self.estimator = unset_flag
+
+
+
+    def prepare(self, enable_export_ckpt_only):
+        self ._ is_prepare = True
+        models = []
+
+        for builder_i in self.task_builders:
+            models.append(builder_i.model)
+            if self.params is None:
+            self.params = models[-1].state_dict()
+            else:
+            self.params.update(models[-1]. state_dict())
+
+        if len(models) > 1:
+            unshared_params, shared_params = get_unshared_and_shared_params(
+            [model_i.state_dict() for model_i in models])
+            self.logger.info('%d shared parameters: \n%s\n' % (
+            len(shared_params), pprint. pformat(shared_params)))
+            self.logger.info('%d unshared parameters: \n%s\n' % (
+            len(unshared_params), pprint. pformat(unshared_params)))
+
+        self.hooks = [
+            TimerHook(logger=self.logger),
+            LogLR(frequent=self.cfg.env.log_interval,logger=self.logger)
+        ]
+        estimators = []
+        assert len(self.task_builders) == len(models)
+        for idx, (builder_i,model_i) in enumerate(zip(self.task_builders, models)):
+            estimator_i= Estimator(
+                            network=model_i,
+                            data_loader=builder_i.data_loader,
+                            batch_processor=builder_i.batch_processor,
+                            metrics = builder_i.metrics,
+                            hooks = builder_i.hooks,
+                            logger = self.logger)
+            estimators.append(estimator_i)
+            # self.hooks. insert(2, DocheckPoint(
+            # models=models,
+            # enable_before_run=True,
+            # prefix = self.solver_cfg. save_model_prefix,
+            # logger = self.logger,
+            # period = self.cfg.env.get('save_chckpint_iter_period',-1)
+            # ))
+            self.estimator = ComposeEstimator(
+                    estimators=estimators, task_sample = self.cfg.get("TASK_SAMPLER", None),
+                    logger=self.logger,
+                    hooks=self.hooks)
+
+    @ property
+    def optimizer(self):
+        if self._optimizer is unset_flag:
+            opt_params = copy.deepcopy(self.solver_cfg.optimizer)
+            opt_type = opt_params.pop('type')
+            # backward compatible
+            flag = opt_params.pop('auto_rescale_lr', None)
+            self.parameters = []
+            params_dict = dict()
+            for builder_i in self.task_builders:
+                for layer in builder_i.model.named_parameters():
+                    params_dict.update({layer[0]:layer[1]})
+            for _,value in params_dict.items():
+                self.parameters.append(value)
+            opt_params[ 'params' ] = self.parameters
+            if flag is not None:
+                msg = "auto_rescale_lr' is deprecated in optimizer, ' \
+                    'please implement the automatically rescale learning
+                    'rate strategy in config directly, this parameter is
+                    'ignored for backward compatible'
+                warnings.warn(msg)
+            self._optimizer = EasyDict(
+                                type=opt_type,
+                                params=opt_params
+                                )
+            self.solver_cfg.lr_scheduler.optimizer = \
+                build_optimizer(self._optimizer.type,
+                                self._optimizer.params)
+            self.optimizer_build = build_optimizer(self._optimizer.type,
+                                                        self._optimizer.params)
+        return self.optimizer_build, self._optimizer    
+
+    @ property
+    def lr_scheduler(self):
+        self.optimizer_build, self. optimizer = self.optimizer
+        if self._lr_scheduler is unset_flag:
+            lr_scheduler = build_lr_scheduler(
+                self.solver_cfg.lr_scheduler.type,
+                self.solver_cfg.lr_scheduler)
+
+            if isinstance(lr_scheduler, torch.optim.lr_scheduler._LRScheduler):
+                opt_lr = self._optimizer['params']['lr']
+            self._lr_scheduler = lr_scheduler
+        return self._lr_scheduler
+
+    def fit(self):
+        assert self._is_prepare, \
+            'call prepare() first'
+
+        def _get_grad_collect_type():
+            if len(self.task_builders) == 1:
+                return GradCollectType.kByGradReqWrite
+            else:
+                return GradCollectType.kByManualCollectAndAdd
+        start_epoch = 0
+        start_iter = 0
+
+        self.estimator.fit(
+            trainer=self.params,
+            ctx = self.cfg.env.ctx,
+            num_epochs = -1,
+            optimizer = self.optimizer[0],
+            lr_scheduler=self.lr_scheduler,
+            start_epoch=start_epoch,
+            start_iter=start_iter,
+            num_iters=self.solver_cfg.num_iter,
+            grad_collect_type =_ get_grad_collect_type()
+            )
+
+    def end_training(self):
+        assert self._is_prepare, 'call prepare() first
+        for hook_i in self.hooks:
+            if isinstance(hook_i,DoCheckPoint):
+                hook_i.before_run()
+                hook_i.after_run()
