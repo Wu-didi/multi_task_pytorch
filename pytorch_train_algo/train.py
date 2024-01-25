@@ -1,31 +1,31 @@
 import argparse
 import pprint
 import sys
-sys.path.append('./')
-from pytorch_train_algo.build import DefaultTaskBuilder, DefaultTrainer
+sys.path.append("../multi_task_pytorch")
+from pytorch_train_algo.build import DefaultTaskBuilder,DefaultTrainer 
 import os
-import torch   
+import torch
 import time
-from registry_config.config import Config
-from registry config.utils import _as_list
-import copy
 from registry_config.logger import logger
+import copy
+from registry_config.utils import _as_list
+from registry_config.config import Config
 
-def parse args():
-    parser = argparse.ArgumentParser()
-    parser.add argument('--config',type=str,required=True.help='configure file')
-    parser.add argument('--ctx',type=str,default=None)
-    parser.add argument('--num-machines ',type=int,default=1.help='The number of machines')
-    parser.add argument('--export-ckpt-only',action='store true',
-                                            default=False,
-                                            help='skip trainer.fit(),export checkpoints only')
-    args = parser.parse args()
-    
-    assert args.num machines >= 1,'The number of machines is at least 1
-    
+
+def parse_args():
+
+    parser = argparse.ArgumentParser(description='Train a detector')
+    parser.add_argument('--config', type=str, default= r'path to multitask.py' ,help='train config file path')
+    parser.add_argument('--ctx',type=str,default='gpu',help='gpu or cpu')
+    parser.add_argument('--resume',type=str,default=None,help='path to resume checkpoint') # 暂时未实现
+    parser.add_argument('--num-machines',type=int,default=1,help='number of machines')
+    parser.add_argument('--export-ckpt-only',action='store_true',default=False ,
+                        help='skip trainer.fit(), only export ckpt file')
+    args = parser.parse_args()
+
+    assert args.config is not None, 'Missing config file'
+
     return args
-
-
 
 def setup_config(args):
     def _pop_unused_keys(configs):
@@ -60,11 +60,11 @@ def setup_config(args):
         task_configs = [copy.copy(config) ]
 
     def _get_solver_config(config):
-    if isinstance(config.solver,dict):
-        solver_config = config.solver
-        return solver_config
-    else:
-        raise TypeError("config.solver should be a dict not %s"%(type(config.solver)))
+        if isinstance(config.solver,dict):
+            solver_config = config.solver
+            return solver_config
+        else:
+            raise TypeError("config.solver should be a dict not %s"%(type(config.solver)))
 
     solver_config = _get_solver_config(config)
 
