@@ -111,5 +111,46 @@ class Config(dict):
     
     def __str__(self):
         def _indent(s_, num_spaces):
-            pass 
-        pass
+            s = s_.split('\n')
+            if len(s) == 1:
+                return s_
+            first = s.pop(0)
+            s = [(num_spaces * ' ') + line for line in s]
+            s = '\n'.join(s)
+            s = first + '\n' + s
+            return s
+        r = ''
+        s = []
+        for k, v in sorted(self.items()):
+            separator = '\n' if isinstance(v, Config) else ' '
+            attr_str = '{}{}{}'.format(str(k), separator, str(v))
+            attr_str = _indent(attr_str, 2)
+            s.append(attr_str)
+        r += '\n'.join(s)
+        return r
+    
+    @staticmethod
+    def _to_str(obj):
+        if isinstance(obj, Config):
+            return obj._to_str()
+        elif isinstance(obj, (list, tuple)):
+            str_value = []
+            for sub in obj:
+                str_value.append(Config._to_str(sub))
+            return str_value
+        elif isinstance(obj, int, float, bool, str):
+            return obj.__str__()
+        else:
+            return obj
+        
+    def to_str(self):
+        str_config = {}
+        for k, v in self.items():
+            str_config[k] = Config._to_str(v)
+        return str_config
+    
+    def __repr__(self):
+        return "{}({})".format(
+                                self.__class__.__name__,
+                                super(Config, self).__repr__()
+                                )
