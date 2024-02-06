@@ -25,7 +25,6 @@ class Perf(object):
         if self._count % self._freq == 0 and self._count > 0:
             avg_duration = self._duration / self._count
             self._logger.info(
-                f'[perf] {self._banner} 
-                avg cost: {avg_duration:.3f} s'
+                f'[perf] {self._banner} \n avg cost: {avg_duration:.3f} s'
             )
             self._duration = 0
